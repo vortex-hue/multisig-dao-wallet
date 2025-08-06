@@ -35,7 +35,7 @@ pub mod multisig_dao_wallet {
         wallet_config.last_spending_reset = Clock::get()?.unix_timestamp;
         wallet_config.is_active = true;
         wallet_config.proposal_count = 0;
-        wallet_config.bump = *ctx.bumps.get("wallet_config").unwrap();
+        wallet_config.bump = ctx.bumps.wallet_config;
 
         // Initialize members
         wallet_config.members = Vec::new();
@@ -80,7 +80,7 @@ pub mod multisig_dao_wallet {
         proposal.rejections = Vec::new();
         proposal.created_at = current_time;
         proposal.id = wallet_config.proposal_count;
-        proposal.bump = *ctx.bumps.get("proposal").unwrap();
+        proposal.bump = ctx.bumps.proposal;
 
         wallet_config.proposal_count += 1;
 
