@@ -1,8 +1,8 @@
 use anchor_lang::prelude::*;
-use anchor_spl::{
-    associated_token::AssociatedToken,
-    token::{Mint, Token, TokenAccount, Transfer},
-};
+// use anchor_spl::{
+//     associated_token::AssociatedToken,
+//     token::{Mint, Token, TokenAccount, Transfer},
+// };
 
 declare_id!("Dbte4Uv7CcmKpvnbV9jo3vQzL8cPggGm71TQHzTgDQsR");
 
@@ -24,6 +24,8 @@ pub mod multisig_dao_wallet {
         require!(proposal_timeout > 0, MultisigError::InvalidTimeout);
         require!(spending_limit > 0, MultisigError::InvalidSpendingLimit);
 
+        // let wallet_config = &mut ctx.accounts.wallet_config;
+        let wallet_key = ctx.accounts.wallet_config.key();
         let wallet_config = &mut ctx.accounts.wallet_config;
         wallet_config.authority = ctx.accounts.authority.key();
         wallet_config.signers = signers.clone();
@@ -35,7 +37,7 @@ pub mod multisig_dao_wallet {
         wallet_config.last_spending_reset = Clock::get()?.unix_timestamp;
         wallet_config.is_active = true;
         wallet_config.proposal_count = 0;
-        wallet_config.bump = *ctx.bumps.get("wallet_config").unwrap();
+        wallet_config.bump = ctx.bumps.wallet_config;
 
         // Initialize members
         wallet_config.members = Vec::new();
@@ -69,7 +71,8 @@ pub mod multisig_dao_wallet {
         require!(expiration > current_time, MultisigError::InvalidExpiration);
 
         let proposal = &mut ctx.accounts.proposal;
-        proposal.wallet = ctx.accounts.wallet_config.key();
+        // proposal.wallet = ctx.accounts.wallet_config.key();
+        proposal.wallet = wallet_key;
         proposal.proposer = ctx.accounts.proposer.key();
         proposal.description = description;
         proposal.category = category;
@@ -80,7 +83,7 @@ pub mod multisig_dao_wallet {
         proposal.rejections = Vec::new();
         proposal.created_at = current_time;
         proposal.id = wallet_config.proposal_count;
-        proposal.bump = *ctx.bumps.get("proposal").unwrap();
+        proposal.bump = ctx.bumps.proposal;
 
         wallet_config.proposal_count += 1;
 
@@ -137,7 +140,7 @@ pub mod multisig_dao_wallet {
         require!(proposal.expiration > current_time, MultisigError::ProposalExpired);
 
         // Execute the instructions
-        for instruction in &proposal.instructions {
+        for _instruction in &proposal.instructions {
             // This is a simplified execution - in a real implementation,
             // you would need to handle different instruction types
             msg!("Executing instruction for proposal {}", proposal.key());
@@ -232,7 +235,7 @@ pub mod multisig_dao_wallet {
         require!(wallet_config.authority == emergency_authority, MultisigError::NotAuthorized);
 
         // Execute emergency instructions immediately
-        for instruction in &instructions {
+        for _instruction in &instructions {
             msg!("Executing emergency instruction");
         }
 
