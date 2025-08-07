@@ -395,10 +395,10 @@ pub struct WalletConfig {
 pub struct Proposal {
     pub wallet: Pubkey,
     pub proposer: Pubkey,
-    #[max_len(100)] // Maximum 100 characters for description
+    #[max_len(50)] // Maximum 50 characters for description
     pub description: String,
     pub category: ProposalCategory,
-    #[max_len(5)] // Maximum 5 instructions per proposal
+    #[max_len(3)] // Maximum 3 instructions per proposal
     pub instructions: Vec<InstructionData>,
     pub expiration: i64,
     pub status: ProposalStatus,
@@ -423,9 +423,9 @@ pub struct Member {
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, PartialEq, Eq, InitSpace)]
 pub struct InstructionData {
     pub program_id: Pubkey,
-    #[max_len(5)] // Maximum 5 accounts per instruction
+    #[max_len(3)] // Maximum 3 accounts per instruction
     pub accounts: Vec<AccountMeta>,
-    #[max_len(128)] // Maximum 128 bytes for instruction data
+    #[max_len(64)] // Maximum 64 bytes for instruction data
     pub data: Vec<u8>,
 }
 

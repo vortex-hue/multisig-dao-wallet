@@ -1,5 +1,5 @@
 import * as anchor from "@coral-xyz/anchor";
-import { Program } from "@coral-xyz/anchor";
+import { Program, BN } from "@coral-xyz/anchor";
 import { MultisigDaoWallet } from "../target/types/multisig_dao_wallet";
 import { PublicKey, Keypair, SystemProgram, LAMPORTS_PER_SOL } from "@solana/web3.js";
 import { expect } from "chai";
@@ -54,9 +54,9 @@ describe("multisig-dao-wallet", () => {
     it("Should initialize wallet with valid parameters", async () => {
       const signers = [signer1.publicKey, signer2.publicKey, signer3.publicKey];
       const threshold = 2;
-      const proposalTimeout = 3600; // 1 hour
-      const spendingLimit = 1000000000; // 1 SOL
-      const spendingPeriod = 86400; // 24 hours
+      const proposalTimeout = new BN(3600); // 1 hour
+      const spendingLimit = new BN(1000000000); // 1 SOL
+      const spendingPeriod = new BN(86400); // 24 hours
 
       const tx = await program.methods
         .initializeWallet(signers, threshold, proposalTimeout, spendingLimit, spendingPeriod)
@@ -86,7 +86,7 @@ describe("multisig-dao-wallet", () => {
 
       try {
         await program.methods
-          .initializeWallet(signers, threshold, 3600, 1000000000, 86400)
+          .initializeWallet(signers, threshold, new BN(3600), new BN(1000000000), new BN(86400))
           .accounts({
             walletConfig: PublicKey.findProgramAddressSync(
               [Buffer.from("wallet_config"), nonSigner.publicKey.toBuffer()],
@@ -109,7 +109,7 @@ describe("multisig-dao-wallet", () => {
 
       try {
         await program.methods
-          .initializeWallet(signers, threshold, 3600, 1000000000, 86400)
+          .initializeWallet(signers, threshold, new BN(3600), new BN(1000000000), new BN(86400))
           .accounts({
             walletConfig: PublicKey.findProgramAddressSync(
               [Buffer.from("wallet_config"), nonSigner.publicKey.toBuffer()],
@@ -131,6 +131,30 @@ describe("multisig-dao-wallet", () => {
     let proposal: PublicKey;
     let proposalBump: number;
 
+    before(async () => {
+      // Initialize wallet first
+      const signers = [signer1.publicKey, signer2.publicKey, signer3.publicKey];
+      const threshold = 2;
+      const proposalTimeout = new BN(3600);
+      const spendingLimit = new BN(1000000000);
+      const spendingPeriod = new BN(86400);
+
+      try {
+        await program.methods
+          .initializeWallet(signers, threshold, proposalTimeout, spendingLimit, spendingPeriod)
+          .accounts({
+            walletConfig,
+            authority: authority.publicKey,
+            systemProgram: SystemProgram.programId,
+          })
+          .signers([authority])
+          .rpc();
+      } catch (error) {
+        // Wallet might already be initialized, ignore error
+        console.log("Wallet already initialized");
+      }
+    });
+
     beforeEach(async () => {
       // Create a new proposal for each test
       const walletConfigAccount = await program.account.walletConfig.fetch(walletConfig);
@@ -138,7 +162,7 @@ describe("multisig-dao-wallet", () => {
         [
           Buffer.from("proposal"),
           walletConfig.toBuffer(),
-          Buffer.from(walletConfigAccount.proposalCount.toString()),
+          signer1.publicKey.toBuffer(),
         ],
         program.programId
       );
@@ -148,7 +172,7 @@ describe("multisig-dao-wallet", () => {
       const description = "Test proposal for multisig wallet";
       const category = { regular: {} };
       const instructions: any[] = [];
-      const expiration = Math.floor(Date.now() / 1000) + 3600; // 1 hour from now
+      const expiration = new BN(Math.floor(Date.now() / 1000) + 3600); // 1 hour from now
 
       const tx = await program.methods
         .addProposal(description, category, instructions, expiration)
@@ -177,7 +201,7 @@ describe("multisig-dao-wallet", () => {
       const description = "Test proposal for approval";
       const category = { regular: {} };
       const instructions: any[] = [];
-      const expiration = Math.floor(Date.now() / 1000) + 3600;
+      const expiration = new BN(Math.floor(Date.now() / 1000) + 3600);
 
       await program.methods
         .addProposal(description, category, instructions, expiration)
@@ -214,7 +238,7 @@ describe("multisig-dao-wallet", () => {
       const description = "Test proposal for non-signer approval";
       const category = { regular: {} };
       const instructions: any[] = [];
-      const expiration = Math.floor(Date.now() / 1000) + 3600;
+      const expiration = new BN(Math.floor(Date.now() / 1000) + 3600);
 
       await program.methods
         .addProposal(description, category, instructions, expiration)
@@ -249,7 +273,7 @@ describe("multisig-dao-wallet", () => {
       const description = "Test proposal for execution";
       const category = { regular: {} };
       const instructions: any[] = [];
-      const expiration = Math.floor(Date.now() / 1000) + 3600;
+      const expiration = new BN(Math.floor(Date.now() / 1000) + 3600);
 
       await program.methods
         .addProposal(description, category, instructions, expiration)
@@ -304,6 +328,29 @@ describe("multisig-dao-wallet", () => {
   });
 
   describe("Wallet Management", () => {
+    before(async () => {
+      // Initialize wallet first
+      const signers = [signer1.publicKey, signer2.publicKey, signer3.publicKey];
+      const threshold = 2;
+      const proposalTimeout = new BN(3600);
+      const spendingLimit = new BN(1000000000);
+      const spendingPeriod = new BN(86400);
+
+      try {
+        await program.methods
+          .initializeWallet(signers, threshold, proposalTimeout, spendingLimit, spendingPeriod)
+          .accounts({
+            walletConfig,
+            authority: authority.publicKey,
+            systemProgram: SystemProgram.programId,
+          })
+          .signers([authority])
+          .rpc();
+      } catch (error) {
+        console.log("Wallet already initialized");
+      }
+    });
+
     it("Should update signers and threshold", async () => {
       const newSigners = [signer1.publicKey, signer2.publicKey, signer3.publicKey, nonSigner.publicKey];
       const newThreshold = 3;
@@ -326,8 +373,8 @@ describe("multisig-dao-wallet", () => {
     });
 
     it("Should set spending limits", async () => {
-      const newLimit = 2000000000; // 2 SOL
-      const newPeriod = 172800; // 48 hours
+      const newLimit = new BN(2000000000); // 2 SOL
+      const newPeriod = new BN(172800); // 48 hours
 
       const tx = await program.methods
         .setSpendingLimits(newLimit, newPeriod)
@@ -368,6 +415,29 @@ describe("multisig-dao-wallet", () => {
   });
 
   describe("Emergency Override", () => {
+    before(async () => {
+      // Initialize wallet first
+      const signers = [signer1.publicKey, signer2.publicKey, signer3.publicKey];
+      const threshold = 2;
+      const proposalTimeout = new BN(3600);
+      const spendingLimit = new BN(1000000000);
+      const spendingPeriod = new BN(86400);
+
+      try {
+        await program.methods
+          .initializeWallet(signers, threshold, proposalTimeout, spendingLimit, spendingPeriod)
+          .accounts({
+            walletConfig,
+            authority: authority.publicKey,
+            systemProgram: SystemProgram.programId,
+          })
+          .signers([authority])
+          .rpc();
+      } catch (error) {
+        console.log("Wallet already initialized");
+      }
+    });
+
     it("Should execute emergency override", async () => {
       const instructions: any[] = [];
 
