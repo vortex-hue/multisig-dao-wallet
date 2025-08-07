@@ -24,8 +24,6 @@ pub mod multisig_dao_wallet {
         require!(proposal_timeout > 0, MultisigError::InvalidTimeout);
         require!(spending_limit > 0, MultisigError::InvalidSpendingLimit);
 
-        // let wallet_config = &mut ctx.accounts.wallet_config;
-        let wallet_key = ctx.accounts.wallet_config.key();
         let wallet_config = &mut ctx.accounts.wallet_config;
         wallet_config.authority = ctx.accounts.authority.key();
         wallet_config.signers = signers.clone();
@@ -64,6 +62,8 @@ pub mod multisig_dao_wallet {
         instructions: Vec<InstructionData>,
         expiration: i64,
     ) -> Result<()> {
+        // Get the wallet key before taking mutable reference
+        let wallet_key = ctx.accounts.wallet_config.key();
         let wallet_config = &mut ctx.accounts.wallet_config;
         require!(wallet_config.is_active, MultisigError::WalletInactive);
         
@@ -71,7 +71,6 @@ pub mod multisig_dao_wallet {
         require!(expiration > current_time, MultisigError::InvalidExpiration);
 
         let proposal = &mut ctx.accounts.proposal;
-        // proposal.wallet = ctx.accounts.wallet_config.key();
         proposal.wallet = wallet_key;
         proposal.proposer = ctx.accounts.proposer.key();
         proposal.description = description;
@@ -266,7 +265,7 @@ pub struct AddProposal<'info> {
         init,
         payer = proposer,
         space = 8 + Proposal::INIT_SPACE,
-        seeds = [b"proposal", wallet_config.key().as_ref(), &wallet_config.proposal_count.to_le_bytes()],
+        seeds = [b"proposal", wallet_config.key().as_ref(), proposer.key().as_ref()],
         bump
     )]
     pub proposal: Account<'info, Proposal>,
@@ -295,8 +294,6 @@ pub struct ApproveProposal<'info> {
     
     #[account(
         mut,
-        seeds = [b"proposal", wallet_config.key().as_ref(), &proposal.id.to_le_bytes()],
-        bump = proposal.bump,
         constraint = proposal.status == ProposalStatus::Pending
     )]
     pub proposal: Account<'info, Proposal>,
@@ -315,8 +312,6 @@ pub struct ExecuteProposal<'info> {
     
     #[account(
         mut,
-        seeds = [b"proposal", wallet_config.key().as_ref(), &proposal.id.to_le_bytes()],
-        bump = proposal.bump,
         constraint = proposal.status == ProposalStatus::Approved
     )]
     pub proposal: Account<'info, Proposal>,
@@ -429,7 +424,7 @@ pub struct InstructionData {
     pub program_id: Pubkey,
     #[max_len(10)] // Maximum 10 accounts per instruction
     pub accounts: Vec<AccountMeta>,
-    #[max_len(1000)] // Maximum 1000 bytes for instruction data
+    #[max_len(256)] // Maximum 256 bytes for instruction data
     pub data: Vec<u8>,
 }
 
