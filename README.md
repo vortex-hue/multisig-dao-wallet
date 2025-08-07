@@ -2,6 +2,8 @@
 
 A comprehensive, production-ready multisignature DAO wallet smart contract built on Solana using the Anchor framework.
 
+![Codigo IDE](./image.png "Codigo Development Platform")
+
 ## Features
 
 ### Core Functionality
